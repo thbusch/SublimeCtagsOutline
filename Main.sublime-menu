@@ -1,0 +1,12 @@
+[
+	{
+		"id" : "tools",
+		"children" :
+		[
+			{
+				"caption" : "CtagsOutline",
+				"command" : "ctags_outline"
+			}
+		]
+	}
+]
