@@ -3,6 +3,7 @@ import subprocess
 
 import sublime, sublime_plugin
 
+
 class Entry(object):
 	def __init__(self, ctags_output):
 		ctags_split = ctags_output.split("\t")
@@ -12,6 +13,8 @@ class Entry(object):
 		self.linenum = int(ctags_split[0].strip(';"'))
 		del ctags_split[0]
 
+		# TODO: use output of ctags --list-kinds to determine the kind of tag
+		# 		using ctags --list-maps to figure out which language the source file is written in
 		itemtypename = ctags_split[0]
 		del ctags_split[0]
 		itemtypes = {
@@ -38,7 +41,6 @@ class CtagsOutlineCommand(sublime_plugin.TextCommand):
 			entries = []
 			for entry in self.entries:
 				entries.append(entry.items)
-			print(entries)
 			self.view.window().show_quick_panel(entries, self.on_selected, sublime.MONOSPACE_FONT, 0, self.on_highlighted)
 
 	def on_selected(self, index):
