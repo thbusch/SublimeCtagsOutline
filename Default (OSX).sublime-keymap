@@ -1,0 +1,5 @@
+[
+{
+	"keys": ["f2"],
+	"command" : "ctags_outline",
+}]
