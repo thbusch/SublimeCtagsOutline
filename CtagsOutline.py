@@ -3,6 +3,7 @@ import subprocess
 
 import sublime, sublime_plugin
 
+ctags_command = "/usr/local/bin/ctags" if (platform.system() == "Darwin") else "ctags"
 
 class Entry(object):
 	def __init__(self, ctags_output):
@@ -13,43 +14,50 @@ class Entry(object):
 		self.linenum = int(ctags_split[0].strip(';"'))
 		del ctags_split[0]
 
-		# TODO: use output of ctags --list-kinds to determine the kind of tag
-		# 		using ctags --list-maps to figure out which language the source file is written in
 		itemtypename = ctags_split[0]
 		del ctags_split[0]
-		itemtypes = {
-			"c": "Class",
-			"m": "Method",
-		}
-		itemtypename = itemtypes.get(itemtypename, "Unknown Type")
-
 		self.items = [itemname, itemtypename]
 
 class CtagsOutlineCommand(sublime_plugin.TextCommand):
-	ctags_command = "/usr/local/bin/ctags" if (platform.system() == "Darwin") else "ctags"
 
 	def run(self, edit):
 		if self.view.file_name() == None:
 			return
 		else:
-			ctags_output = subprocess.check_output([self.ctags_command, "-n", "-f", "-", self.view.file_name()], stderr=subprocess.STDOUT).decode("utf-8")
+			ctags_output = subprocess.check_output([ctags_command, "-n", "-f", "-", "--fields=fKst", self.view.file_name()], stderr=subprocess.STDOUT).decode("utf-8")
+			current_line = 0;
+			current_line = self.view.rowcol(self.view.sel()[0].a)[0]
+			print("%d"%current_line)
 			res = ctags_output.splitlines()
 			self.entries = []
 			for item in res:
-				self.entries.append(Entry(item))
+				entry = Entry(item)
+				if entry.linenum <= current_line:
+					selected_entry = len(self.entries)
+				self.entries.append(entry)
+
 			self.entries = sorted(self.entries, key=lambda item: item.linenum)
+			selected_index = 0
+			for entry in self.entries:
+				if entry.linenum <= current_line:
+					selected_index = self.entries.index(entry)
 			entries = []
 			for entry in self.entries:
 				entries.append(entry.items)
-			self.view.window().show_quick_panel(entries, self.on_selected, sublime.MONOSPACE_FONT, 0, self.on_highlighted)
+			self.view.window().show_quick_panel(entries, self.on_selected, sublime.MONOSPACE_FONT, selected_index, self.on_highlighted)
 
 	def on_selected(self, index):
-		pass
+		if index == -1:
+			self.view.show(self.view.sel()[0].a)
+			return
+		row = self.entries[index].linenum
+		col = 0
+		pt = self.view.text_point(row, col)
+		self.view.sel().clear()
+		self.view.sel().add(sublime.Region(pt))
 
 	def on_highlighted(self, index):
 		row = self.entries[index].linenum
 		col = 0
 		pt = self.view.text_point(row, col)
-		self.view.sel().clear()
-		self.view.sel().add(sublime.Region(pt, pt))
-		self.view.show_at_center(pt)
+		self.view.show(pt)
